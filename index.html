@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World Cup Bracket</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #f7f8ff;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(45, 145, 255, 0.22), transparent 32%),
+        radial-gradient(circle at 90% 100%, rgba(48, 190, 105, 0.14), transparent 32%),
+        #121212;
+    }
+
+    header {
+      padding: 26px 24px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 44px);
+      letter-spacing: -0.04em;
+    }
+
+    .sub {
+      margin-top: 7px;
+      color: #a7adbc;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #f7f8ff;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    button.active {
+      background: #f7f8ff;
+      color: #111;
+    }
+
+    button:hover {
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    .status {
+      color: #a7adbc;
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      padding: 14px 24px 28px;
+    }
+
+    .main-card,
+    .odds-card {
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.055);
+      border-radius: 24px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.22);
+      backdrop-filter: blur(18px);
+    }
+
+    .main-card {
+      min-height: 720px;
+      overflow: hidden;
+    }
+
+    .odds-card {
+      height: fit-content;
+      padding: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .odds-card h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .odds-note {
+      margin: 0 0 14px;
+      color: #a7adbc;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .odds-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .odd-row {
+      display: grid;
+      grid-template-columns: 30px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 15px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .odd-row small {
+      display: block;
+      color: #a7adbc;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .odd-price {
+      font-weight: 900;
+      color: #bfffd2;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .classic-scroll {
+      overflow-x: auto;
+      padding: 18px;
+    }
+
+    .classic-bracket {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(245px, 1fr));
+      gap: 16px;
+      min-width: 1280px;
+    }
+
+    .round {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .round-title {
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .round-title h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .round-title p {
+      margin: 4px 0 0;
+      color: #a7adbc;
+      font-size: 12px;
+    }
+
+    .match {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.055);
+      overflow: hidden;
+    }
+
+    .match-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 11px;
+      color: #a7adbc;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .teams {
+      padding: 7px;
+    }
+
+    .team {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 43px;
+      padding: 8px 9px;
+      border-radius: 13px;
+    }
+
+    .team + .team {
+      margin-top: 4px;
+    }
+
+    .team.winner {
+      background: rgba(60, 202, 112, 0.18);
+      color: #dfffe8;
+      font-weight: 900;
+    }
+
+    .team.loser {
+      background: rgba(255,255,255,0.035);
+      color: #8e95a8;
+      text-decoration: line-through;
+      opacity: 0.62;
+      filter: grayscale(1);
+    }
+
+    .flag {
+      width: 28px;
+      height: 20px;
+      border-radius: 4px;
+      object-fit: cover;
+      background: rgba(255,255,255,0.12);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.17);
+    }
+
+    .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .abbr {
+      color: #a7adbc;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    .score {
+      font-size: 18px;
+      font-weight: 950;
+      min-width: 30px;
+      text-align: right;
+    }
+
+    .match-odds {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 8px 9px;
+    }
+
+    .pill {
+      padding: 5px 8px;
+      border-radius: 999px;
+      color: #c7eaff;
+      background: rgba(139,211,255,0.11);
+      border: 1px solid rgba(139,211,255,0.14);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .empty {
+      padding: 18px;
+      color: #a7adbc;
+      border: 1px dashed rgba(255,255,255,0.16);
+      border-radius: 18px;
+      text-align: center;
+    }
+
+    .radial-wrap {
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .radial-board {
+      width: 680px;
+      height: 680px;
+      margin: 0 auto;
+      position: relative;
+      border-radius: 24px;
+      background: #292929;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .radial-title {
+      position: absolute;
+      left: 22px;
+      top: 18px;
+      margin: 0;
+      color: #9aa5b6;
+      font-size: 25px;
+      font-weight: 500;
+    }
+
+    .radial-svg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .connector {
+      fill: none;
+      stroke: rgba(255,255,255,0.09);
+      stroke-width: 2;
+    }
+
+    .match-node {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      background: #242424;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.28);
+    }
+
+    .match-node.done {
+      background: rgba(55, 196, 105, 0.22);
+      border-color: rgba(100, 255, 160, 0.28);
+    }
+
+    .team-dot {
+      position: absolute;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      background: #1f1f1f;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.28);
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .team-dot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .team-dot.winner {
+      box-shadow: 0 0 0 3px rgba(100,255,160,0.25), 0 8px 18px rgba(0,0,0,0.35);
+    }
+
+    .team-dot.loser {
+      filter: grayscale(1);
+      opacity: 0.42;
+    }
+
+    .team-dot.loser::after {
+      content: "";
+      position: absolute;
+      width: 130%;
+      height: 3px;
+      background: rgba(255,255,255,0.7);
+      transform: rotate(-34deg);
+    }
+
+    .center-trophy {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 54px;
+      height: 54px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 186, 73, 0.55);
+      display: grid;
+      place-items: center;
+      color: #ffb234;
+      font-size: 22px;
+      background: rgba(255, 186, 73, 0.04);
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 10;
+      padding: 9px 10px;
+      border-radius: 12px;
+      background: rgba(15,15,15,0.92);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: white;
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 260px;
+      display: none;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+    }
+
+    .error {
+      display: none;
+      margin: 12px 24px 0;
+      padding: 13px 15px;
+      color: #ffb4b4;
+      background: rgba(255,80,80,0.08);
+      border: 1px solid rgba(255,120,120,0.22);
+      border-radius: 16px;
+    }
+
+    @media (max-width: 1080px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .odds-card {
+        position: static;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1>FIFA World Cup Bracket</h1>
+      <div class="sub">Live scores, circular knockout view, classic view, and Polymarket market prices where available.</div>
+    </div>
+
+    <div class="controls">
+      <button id="circleBtn" class="active">Circle view</button>
+      <button id="classicBtn">Classic view</button>
+      <button id="refreshBtn">Refresh</button>
+      <span id="status" class="status">Loading...</span>
+    </div>
+  </header>
+
+  <div id="error" class="error"></div>
+
+  <div class="layout">
+    <main class="main-card">
+      <section id="circleView" class="view active">
+        <div class="radial-wrap">
+          <div id="radialBoard" class="radial-board"></div>
+        </div>
+      </section>
+
+      <section id="classicView" class="view">
+        <div class="classic-scroll">
+          <div id="classicBracket" class="classic-bracket"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="odds-card">
+      <h2>Polymarket odds</h2>
+      <p class="odds-note">World Cup winner market prices. These are market prices, not bookmaker odds.</p>
+      <div id="winnerOdds" class="odds-list">
+        <div class="empty">Loading odds...</div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <script>
+    const ESPN_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260628-20260719&limit=100";
+    const POLYMARKET = "https://gamma-api.polymarket.com";
+    const CORS_PROXY = "";
+    const MATCH_ODDS_HOURS = 120;
+
+    const rounds = [
+      { id: "r32", title: "Round of 32", dates: "June 28 to July 3", start: "2026-06-28", end: "2026-07-03", radius: 274 },
+      { id: "r16", title: "Round of 16", dates: "July 4 to July 7", start: "2026-07-04", end: "2026-07-07", radius: 205 },
+      { id: "qf", title: "Quarter-finals", dates: "July 9 to July 11", start: "2026-07-09", end: "2026-07-11", radius: 138 },
+      { id: "sf", title: "Semi-finals", dates: "July 14 to July 15", start: "2026-07-14", end: "2026-07-15", radius: 78 },
+      { id: "final", title: "Final", dates: "July 19", start: "2026-07-19", end: "2026-07-19", radius: 0 }
+    ];
+
+    const flagCode = {
+      ARG: "ar", AUS: "au", AUT: "at", BEL: "be", BIH: "ba", BRA: "br",
+      CAN: "ca", CIV: "ci", COL: "co", COD: "cd", CRO: "hr", CZE: "cz",
+      CUW: "cw", ECU: "ec", EGY: "eg", ENG: "gb-eng", ESP: "es", FRA: "fr",
+      GER: "de", GHA: "gh", HAI: "ht", IRN: "ir", IRQ: "iq", JPN: "jp",
+      JOR: "jo", KOR: "kr", MAR: "ma", MEX: "mx", NED: "nl", NOR: "no",
+      NZL: "nz", PAN: "pa", PAR: "py", POR: "pt", QAT: "qa", RSA: "za",
+      SAU: "sa", KSA: "sa", SCO: "gb-sct", SEN: "sn", SUI: "ch", SWE: "se",
+      TUN: "tn", TUR: "tr", USA: "us", URU: "uy", UZB: "uz", CPV: "cv",
+      DZA: "dz", ALG: "dz"
+    };
+
+    const radialBoard = document.getElementById("radialBoard");
+    const classicBracket = document.getElementById("classicBracket");
+    const winnerOdds = document.getElementById("winnerOdds");
+    const statusEl = document.getElementById("status");
+    const errorEl = document.getElementById("error");
+    const tooltip = document.getElementById("tooltip");
+
+    document.getElementById("refreshBtn").addEventListener("click", loadAll);
+
+    document.getElementById("circleBtn").addEventListener("click", () => setView("circle"));
+    document.getElementById("classicBtn").addEventListener("click", () => setView("classic"));
+
+    loadAll();
+
+    async function loadAll() {
+      errorEl.style.display = "none";
+      statusEl.textContent = "Loading...";
+
+      try {
+        const [eventsData, championOdds] = await Promise.all([
+          fetchJson(ESPN_URL),
+          fetchChampionOdds()
+        ]);
+
+        const events = normalizeEvents(eventsData.events || []);
+        await attachMatchOdds(events);
+
+        renderClassic(events);
+        renderRadial(events);
+        renderChampionOdds(championOdds);
+
+        statusEl.textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Update failed";
+        errorEl.textContent = "Could not load the live data. If the browser blocks one of the APIs, serve this file locally with: python3 -m http.server 8000";
+        errorEl.style.display = "block";
+      }
+    }
+
+    function setView(view) {
+      const circle = view === "circle";
+      document.getElementById("circleView").classList.toggle("active", circle);
+      document.getElementById("classicView").classList.toggle("active", !circle);
+      document.getElementById("circleBtn").classList.toggle("active", circle);
+      document.getElementById("classicBtn").classList.toggle("active", !circle);
+    }
+
+    async function fetchJson(url) {
+      const finalUrl = CORS_PROXY ? CORS_PROXY + encodeURIComponent(url) : url;
+      const res = await fetch(finalUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    }
+
+    function normalizeEvents(rawEvents) {
+      return rawEvents
+        .filter(event => event && event.date)
+        .map(event => {
+          const competition = event.competitions?.[0] || {};
+          const teams = (competition.competitors || []).map(toTeam).sort((a, b) => {
+            if (a.homeAway === "home") return -1;
+            if (b.homeAway === "home") return 1;
+            return 0;
+          });
+
+          const completed =
+            event.status?.type?.completed ||
+            competition.status?.type?.completed ||
+            false;
+
+          const winnerData = getWinnerData(teams, completed);
+
+          return {
+            id: event.id,
+            name: event.name || event.shortName || "Match",
+            date: event.date,
+            roundId: detectRound(event),
+            status: event.status?.type?.shortDetail || event.status?.type?.description || "Scheduled",
+            completed,
+            teams,
+            winnerData,
+            odds: []
+          };
+        })
+        .filter(event => event.roundId);
+    }
+
+    function toTeam(item) {
+      const team = item.team || {};
+      const abbr = (team.abbreviation || item.abbreviation || "").toUpperCase();
+      const name = team.displayName || team.shortDisplayName || item.displayName || "TBD";
+
+      return {
+        id: team.id || item.id || name,
+        name,
+        abbr,
+        homeAway: item.homeAway,
+        score: item.score ?? "",
+        winner: item.winner,
+        penalties: item.shootoutScore ?? item.penaltyScore ?? item.penalties ?? null,
+        flag: getFlag(team, abbr)
+      };
+    }
+
+    function getFlag(team, abbr) {
+      if (team.flag?.href) return team.flag.href;
+      if (team.logo) return team.logo;
+      if (team.logos?.[0]?.href) return team.logos[0].href;
+
+      const code = flagCode[abbr];
+      return code ? "https://flagcdn.com/w80/" + code + ".png" : "";
+    }
+
+    function detectRound(event) {
+      const text = JSON.stringify({
+        name: event.name,
+        shortName: event.shortName,
+        season: event.season,
+        competitions: event.competitions
+      }).toLowerCase();
+
+      if (text.includes("3rd place") || text.includes("third place")) return null;
+      if (text.includes("round of 32")) return "r32";
+      if (text.includes("round of 16")) return "r16";
+      if (text.includes("quarter")) return "qf";
+      if (text.includes("semi")) return "sf";
+      if (text.includes("final")) return "final";
+
+      const d = new Date(event.date).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      const round = rounds.find(item => d >= item.start && d <= item.end);
+      return round ? round.id : null;
+    }
+
+    function getWinnerData(teams, completed) {
+      if (!completed || teams.length < 2) {
+        return { winnerId: null, loserIds: new Set() };
+      }
+
+      const explicit = teams.find(team => team.winner === true);
+      if (explicit) {
+        return {
+          winnerId: explicit.id,
+          loserIds: new Set(teams.filter(team => team.id !== explicit.id).map(team => team.id))
+        };
+      }
+
+      const a = teams[0];
+      const b = teams[1];
+      const scoreA = Number(a.score);
+      const scoreB = Number(b.score);
+
+      if (Number.isFinite(scoreA) && Number.isFinite(scoreB)) {
+        if (scoreA > scoreB) return { winnerId: a.id, loserIds: new Set([b.id]) };
+        if (scoreB > scoreA) return { winnerId: b.id, loserIds: new Set([a.id]) };
+
+        const pensA = Number(a.penalties);
+        const pensB = Number(b.penalties);
+
+        if (Number.isFinite(pensA) && Number.isFinite(pensB)) {
+          if (pensA > pensB) return { winnerId: a.id, loserIds: new Set([b.id]) };
+          if (pensB > pensA) return { winnerId: b.id, loserIds: new Set([a.id]) };
+        }
+      }
+
+      return { winnerId: null, loserIds: new Set() };
+    }
+
+    function renderClassic(events) {
+      const grouped = groupByRound(events);
+
+      classicBracket.innerHTML = rounds.map(round => {
+        const matches = grouped[round.id] || [];
+
+        return `
+          <section class="round">
+            <div class="round-title">
+              <h2>${escapeHtml(round.title)}</h2>
+              <p>${escapeHtml(round.dates)} · ${matches.length} match${matches.length === 1 ? "" : "es"}</p>
+            </div>
+            ${matches.length ? matches.map(renderMatchCard).join("") : `<div class="empty">No matches found</div>`}
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderMatchCard(match) {
+      return `
+        <article class="match">
+          <div class="match-head">
+            <span>${escapeHtml(formatDate(match.date))}</span>
+            <span>${escapeHtml(match.status)}</span>
+          </div>
+
+          <div class="teams">
+            ${match.teams.length ? match.teams.map(team => renderTeamRow(team, match)).join("") : renderTbdTeam()}
+          </div>
+
+          ${match.odds.length ? `
+            <div class="match-odds">
+              ${match.odds.slice(0, 3).map(odd => `<span class="pill">${escapeHtml(odd.name)} ${formatPct(odd.price)}</span>`).join("")}
+            </div>
+          ` : ""}
+        </article>
+      `;
+    }
+
+    function renderTeamRow(team, match) {
+      const isWinner = match.completed && match.winnerData.winnerId === team.id;
+      const isLoser = match.completed && match.winnerData.loserIds.has(team.id);
+      const className = ["team", isWinner ? "winner" : "", isLoser ? "loser" : ""].filter(Boolean).join(" ");
+      const score = team.score !== "" && team.score !== null && team.score !== undefined ? escapeHtml(team.score) : "-";
+      const pens = team.penalties !== null && team.penalties !== undefined ? `<small> (${escapeHtml(team.penalties)})</small>` : "";
+
+      return `
+        <div class="${className}">
+          ${team.flag ? `<img class="flag" src="${escapeHtml(team.flag)}" alt="">` : `<span></span>`}
+          <span>
+            <div class="name">${escapeHtml(team.name)}</div>
+            <div class="abbr">${escapeHtml(team.abbr || "TBD")}</div>
+          </span>
+          <span class="score">${score}${pens}</span>
+        </div>
+      `;
+    }
+
+    function renderTbdTeam() {
+      return `
+        <div class="team">
+          <span></span>
+          <span>
+            <div class="name">TBD</div>
+            <div class="abbr">Waiting for teams</div>
+          </span>
+          <span class="score">-</span>
+        </div>
+      `;
+    }
+
+    function renderRadial(events) {
+      const grouped = groupByRound(events);
+      const center = 340;
+      const pointsByRound = {};
+      let svg = `<svg class="radial-svg" viewBox="0 0 680 680">`;
+
+      rounds.filter(round => round.id !== "final").forEach(round => {
+        const matches = grouped[round.id] || [];
+        pointsByRound[round.id] = [];
+
+        matches.forEach((match, i) => {
+          const angle = angleFor(i, matches.length);
+          const p = polar(center, center, round.radius, angle);
+          pointsByRound[round.id].push(p);
+        });
+      });
+
+      for (let r = 0; r < rounds.length - 2; r++) {
+        const outer = pointsByRound[rounds[r].id] || [];
+        const inner = pointsByRound[rounds[r + 1].id] || [];
+
+        outer.forEach((point, i) => {
+          const next = inner[Math.floor(i / 2)];
+          if (next) {
+            svg += `<path class="connector" d="M ${point.x} ${point.y} Q ${center} ${center} ${next.x} ${next.y}"></path>`;
+          }
+        });
+      }
+
+      svg += `</svg>`;
+
+      let html = `
+        <h2 class="radial-title">Round of 32</h2>
+        ${svg}
+        <div class="center-trophy">🏆</div>
+      `;
+
+      rounds.filter(round => round.id !== "final").forEach(round => {
+        const matches = grouped[round.id] || [];
+
+        matches.forEach((match, i) => {
+          const angle = angleFor(i, matches.length);
+          const node = polar(center, center, round.radius, angle);
+
+          html += `<div class="match-node ${match.completed ? "done" : ""}" style="left:${node.x}px;top:${node.y}px" data-tip="${escapeHtml(tipFor(match))}"></div>`;
+
+          const dotRadius = round.id === "r32" ? round.radius + 34 : round.radius + 21;
+          const spread = round.id === "r32" ? 0.055 : 0.04;
+
+          match.teams.slice(0, 2).forEach((team, index) => {
+            const teamAngle = angle + (index === 0 ? -spread : spread);
+            const p = polar(center, center, dotRadius, teamAngle);
+            const isWinner = match.completed && match.winnerData.winnerId === team.id;
+            const isLoser = match.completed && match.winnerData.loserIds.has(team.id);
+            const cls = ["team-dot", isWinner ? "winner" : "", isLoser ? "loser" : ""].filter(Boolean).join(" ");
+
+            html += `
+              <div class="${cls}" style="left:${p.x}px;top:${p.y}px" data-tip="${escapeHtml(tipFor(match, team))}">
+                ${team.flag ? `<img src="${escapeHtml(team.flag)}" alt="">` : ""}
+              </div>
+            `;
+          });
+        });
+      });
+
+      radialBoard.innerHTML = html;
+      bindTooltips();
+    }
+
+    function tipFor(match, team) {
+      const teams = match.teams.map(t => {
+        const score = t.score !== "" && t.score !== null && t.score !== undefined ? " " + t.score : "";
+        const pens = t.penalties !== null && t.penalties !== undefined ? " (" + t.penalties + " pens)" : "";
+        return t.name + score + pens;
+      }).join(" vs ");
+
+      const oddsText = match.odds.length
+        ? "\\nPolymarket: " + match.odds.slice(0, 3).map(o => o.name + " " + formatPct(o.price)).join(", ")
+        : "";
+
+      return `${team ? team.name + "\\n" : ""}${teams}\\n${formatDate(match.date)}\\n${match.status}${oddsText}`;
+    }
+
+    function bindTooltips() {
+      document.querySelectorAll("[data-tip]").forEach(el => {
+        el.addEventListener("mousemove", e => {
+          tooltip.style.display = "block";
+          tooltip.style.left = e.pageX + 12 + "px";
+          tooltip.style.top = e.pageY + 12 + "px";
+          tooltip.textContent = el.dataset.tip;
+        });
+
+        el.addEventListener("mouseleave", () => {
+          tooltip.style.display = "none";
+        });
+      });
+    }
+
+    function groupByRound(events) {
+      const grouped = Object.fromEntries(rounds.map(round => [round.id, []]));
+      events
+        .slice()
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .forEach(event => grouped[event.roundId]?.push(event));
+      return grouped;
+    }
+
+    function angleFor(index, count) {
+      return -Math.PI / 2 + index * ((Math.PI * 2) / Math.max(count, 1));
+    }
+
+    function polar(cx, cy, radius, angle) {
+      return {
+        x: Math.round(cx + Math.cos(angle) * radius),
+        y: Math.round(cy + Math.sin(angle) * radius)
+      };
+    }
+
+    async function fetchChampionOdds() {
+      const queries = [
+        "2026 FIFA World Cup winner",
+        "FIFA World Cup champion",
+        "World Cup 2026 winner"
+      ];
+
+      const batches = await Promise.allSettled(queries.map(q => fetchMarkets(q, 80)));
+      const markets = batches.flatMap(batch => batch.status === "fulfilled" ? batch.value : []);
+      const rows = [];
+
+      markets.forEach(market => {
+        if (!isWorldCupWinnerMarket(market)) return;
+
+        const outcomes = parseArray(market.outcomes);
+        const prices = parseArray(market.outcomePrices);
+
+        if (outcomes.length > 2 && prices.length === outcomes.length) {
+          outcomes.forEach((name, i) => {
+            const price = Number(prices[i]);
+            if (Number.isFinite(price) && price > 0) {
+              rows.push({
+                name: cleanTeamName(name),
+                price,
+                market: market.question || market.title || "World Cup winner"
+              });
+            }
+          });
+        }
+
+        if (outcomes.length === 2 && prices.length === 2) {
+          const yesIndex = outcomes.findIndex(x => String(x).toLowerCase() === "yes");
+          const price = Number(prices[yesIndex >= 0 ? yesIndex : 0]);
+          const team = extractTeamFromQuestion(market.question || market.title || "");
+
+          if (team && Number.isFinite(price) && price > 0) {
+            rows.push({
+              name: team,
+              price,
+              market: market.question || market.title || "World Cup winner"
+            });
+          }
+        }
+      });
+
+      const byName = new Map();
+
+      rows.forEach(row => {
+        const key = row.name.toLowerCase();
+        const existing = byName.get(key);
+
+        if (!existing || row.price > existing.price) {
+          byName.set(key, row);
+        }
+      });
+
+      return Array.from(byName.values())
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 16);
+    }
+
+    async function attachMatchOdds(events) {
+      const now = Date.now();
+
+      const soon = events
+        .filter(match => {
+          if (match.completed || match.teams.length < 2) return false;
+          const diffHours = (new Date(match.date).getTime() - now) / 36e5;
+          return diffHours > -2 && diffHours <= MATCH_ODDS_HOURS;
+        })
+        .slice(0, 8);
+
+      await Promise.allSettled(soon.map(async match => {
+        match.odds = await fetchMatchOdds(match);
+      }));
+    }
+
+    async function fetchMatchOdds(match) {
+      const a = match.teams[0];
+      const b = match.teams[1];
+      if (!a || !b) return [];
+
+      const markets = await fetchMarkets(`${a.name} ${b.name} World Cup`, 40);
+      const rows = [];
+
+      markets.forEach(market => {
+        const text = ((market.question || market.title || "") + " " + (market.slug || "")).toLowerCase();
+        const hasA = text.includes(a.name.toLowerCase()) || text.includes(a.abbr.toLowerCase());
+        const hasB = text.includes(b.name.toLowerCase()) || text.includes(b.abbr.toLowerCase());
+
+        if (!hasA || !hasB) return;
+
+        const outcomes = parseArray(market.outcomes);
+        const prices = parseArray(market.outcomePrices);
+
+        if (outcomes.length === prices.length) {
+          outcomes.forEach((name, i) => {
+            const price = Number(prices[i]);
+            const label = cleanTeamName(name);
+
+            if (Number.isFinite(price) && price > 0 && label.toLowerCase() !== "no") {
+              rows.push({ name: label, price });
+            }
+          });
+        }
+      });
+
+      return rows
+        .filter(row => row.name.toLowerCase() !== "yes")
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 3);
+    }
+
+    async function fetchMarkets(search, limit) {
+      const url = `${POLYMARKET}/markets?active=true&closed=false&archived=false&limit=${limit}&search=${encodeURIComponent(search)}`;
+      const data = await fetchJson(url);
+      return Array.isArray(data) ? data : data.markets || [];
+    }
+
+    function isWorldCupWinnerMarket(market) {
+      const text = ((market.question || market.title || "") + " " + (market.slug || "")).toLowerCase();
+
+      if (!text.includes("world cup")) return false;
+      if (text.includes("club world cup")) return false;
+      if (text.includes("qualify")) return false;
+      if (text.includes("group")) return false;
+
+      return text.includes("winner") ||
+        text.includes("champion") ||
+        text.includes("win the world cup") ||
+        text.includes("win 2026");
+    }
+
+    function parseArray(value) {
+      if (Array.isArray(value)) return value;
+
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return value.split(",").map(x => x.trim()).filter(Boolean);
+        }
+      }
+
+      return [];
+    }
+
+    function extractTeamFromQuestion(question) {
+      const q = question.replace(/\?/g, "");
+
+      const patterns = [
+        /^will (.+?) win/i,
+        /^will (.+?) be/i,
+        /will (.+?) win the/i,
+        /will (.+?) win 2026/i
+      ];
+
+      for (const pattern of patterns) {
+        const match = q.match(pattern);
+        if (match && match[1]) return cleanTeamName(match[1]);
+      }
+
+      return "";
+    }
+
+    function cleanTeamName(value) {
+      return String(value)
+        .replace(/^the /i, "")
+        .replace(/ national team$/i, "")
+        .replace(/ to win.*$/i, "")
+        .trim();
+    }
+
+    function renderChampionOdds(rows) {
+      if (!rows.length) {
+        winnerOdds.innerHTML = `<div class="empty">No active World Cup winner market found.</div>`;
+        return;
+      }
+
+      winnerOdds.innerHTML = rows.map(row => {
+        const code = guessFlagCode(row.name);
+        const flag = code ? `https://flagcdn.com/w80/${code}.png` : "";
+
+        return `
+          <div class="odd-row">
+            ${flag ? `<img class="flag" src="${flag}" alt="">` : `<span></span>`}
+            <div>
+              <strong>${escapeHtml(row.name)}</strong>
+              <small>${escapeHtml(row.market)}</small>
+            </div>
+            <div class="odd-price">${formatPct(row.price)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function guessFlagCode(name) {
+      const map = {
+        argentina: "ar", australia: "au", austria: "at", belgium: "be",
+        brazil: "br", canada: "ca", colombia: "co", croatia: "hr",
+        england: "gb-eng", france: "fr", germany: "de", italy: "it",
+        japan: "jp", mexico: "mx", morocco: "ma", netherlands: "nl",
+        norway: "no", portugal: "pt", senegal: "sn", spain: "es",
+        sweden: "se", switzerland: "ch", "united states": "us",
+        usa: "us", uruguay: "uy"
+      };
+
+      return map[String(name).toLowerCase()] || "";
+    }
+
+    function formatPct(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "-";
+      return (n * 100).toFixed(n >= 0.1 ? 1 : 2) + "%";
+    }
+
+    function formatDate(value) {
+      return new Date(value).toLocaleString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
