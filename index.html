@@ -141,18 +141,26 @@
   .tnode .abbr{font-size:9px;font-weight:800;color:var(--chalk)}
   .tnode.win{border-color:var(--grass);box-shadow:0 0 0 2.5px rgba(55,217,138,.45),0 5px 14px rgba(0,0,0,.4)}
   .tnode.lose{filter:grayscale(.85);opacity:.4}
-  .pend{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;
-    border:1.5px dashed rgba(255,255,255,.12)}
+  .pend{position:absolute;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;
+    border:1.5px dashed rgba(255,255,255,.13);background:rgba(255,255,255,.015)}
+  .schip{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:11px;font-weight:700;
+    padding:2px 7px;border-radius:8px;background:rgba(8,19,14,.95);border:1px solid rgba(255,255,255,.22);
+    z-index:8;white-space:nowrap;color:var(--text)}
+  .schip i{font-style:normal;color:var(--muted-2);padding:0 1px}
+  .schip.live{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(242,193,78,.25)}
+  .schip.done{border-color:var(--grass)}
 
   .core{position:absolute;left:50%;top:50%;width:78px;height:78px;transform:translate(-50%,-50%);border-radius:50%;
-    display:grid;place-items:center;background:radial-gradient(circle,rgba(242,193,78,.16),transparent 70%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:radial-gradient(circle,rgba(242,193,78,.16),transparent 70%);
     border:1.5px dashed rgba(242,193,78,.5);z-index:15}
-  .core .trophy{font-size:27px;line-height:1}
+  .core .trophy{font-size:25px;line-height:1}
+  .core-sub{font-size:8px;font-weight:800;letter-spacing:.24em;color:var(--gold)}
   .core.crowned{border-style:solid;border-color:var(--gold);overflow:hidden;
     box-shadow:0 0 0 6px rgba(242,193,78,.12),0 0 34px rgba(242,193,78,.35)}
-  .ringlabel{position:absolute;transform:translate(-50%,-50%);font-size:9px;font-weight:700;letter-spacing:.16em;
+  .ringlabel{position:absolute;transform:translate(-50%,-100%) translateY(-4px);font-size:8.5px;font-weight:800;letter-spacing:.18em;
     text-transform:uppercase;color:var(--muted-2);pointer-events:none;white-space:nowrap;
-    background:var(--ink-2);padding:1px 6px;border-radius:6px}
+    background:rgba(12,28,21,.9);padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.05)}
 
   .side{display:flex;flex-direction:column;gap:14px;position:sticky;top:16px}
   .panel{background:linear-gradient(180deg,var(--panel),var(--ink-2));border:1px solid var(--line);border-radius:var(--radius);padding:15px}
@@ -303,7 +311,7 @@ const NAME2ABBR = {france:"FRA",spain:"ESP",england:"ENG",argentina:"ARG",portug
 
 /* ---------- embedded snapshot (real Jun-2026 R32 fixtures + DraftKings moneylines) ---------- */
 function g(hn,ha,an,aa,ml,date){
-  return { date, status:"Scheduled", state:"pre", completed:false,
+  return { date, status:"Scheduled", state:"pre", completed:false, roundId:"r32",
     teams:[{name:hn,abbr:ha},{name:an,abbr:aa}], ml };
 }
 const SNAPSHOT = { updated:"snapshot", rounds:{
@@ -560,7 +568,7 @@ function buildGeometry(){
     o.push(Math.atan2(Math.sin(a[i])+Math.sin(a[i+1]),Math.cos(a[i])+Math.cos(a[i+1])));return o;};
   const a16=childA(a32),aqf=childA(a16),asf=childA(aqf);
   const angles={r32:a32,r16:a16,qf:aqf,sf:asf,final:[0]};
-  const radius={bubble:326,r32:288,r16:216,qf:144,sf:72,final:0};
+  const radius={r32:308,r16:230,qf:152,sf:76,final:0};
   const P=(r,a)=>({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r});
   const points={}; for(const k of ["r32","r16","qf","sf","final"]) points[k]=angles[k].map(a=>P(radius[k],a));
   return {cx,cy,angles,radius,points,P};
@@ -582,48 +590,60 @@ function renderBracket(){
   svg+=`</svg>`;
   let html=svg;
 
-  [["R32",GEO.radius.r32],["R16",GEO.radius.r16],["QF",GEO.radius.qf],["SF",GEO.radius.sf]].forEach(([txt,r])=>{
+  [["Round of 32",GEO.radius.r32],["Round of 16",GEO.radius.r16],["Quarters",GEO.radius.qf],["Semis",GEO.radius.sf]].forEach(([txt,r])=>{
     html+=`<div class="ringlabel" style="left:50%;top:${((cy-r)/720*100).toFixed(2)}%">${txt}</div>`;
   });
 
+  // every round: flag pair flanking the match point on its own ring
   ["r32","r16","qf","sf"].forEach(rid=>{
-    (GEO.points[rid]||[]).forEach((p,i)=>{
-      const m=(DATA.rounds[rid]||[])[i];
-      let cls="node mnode"; if(m&&m.completed) cls+=" done"; else if(m&&m.state==="in") cls+=" live";
-      html+=`<div class="${cls}" style="${posPct(p)}" data-tip="${esc(tipMatch(m,rid))}"></div>`;
+    const pts=GEO.points[rid], angs=GEO.angles[rid];
+    const off = rid==="sf" ? 26 : 23;
+    pts.forEach((p,i)=>{
+      const m=(DATA.rounds[rid]||[])[i], ang=angs[i];
+      const tx=-Math.sin(ang), ty=Math.cos(ang);
+      const pa={x:p.x-tx*off,y:p.y-ty*off}, pb={x:p.x+tx*off,y:p.y+ty*off};
+      const A=m&&m.teams?m.teams[0]:null, B=m&&m.teams?m.teams[1]:null;
+      const tipTxt=esc(tipMatch(m,rid));
+      if(!m||(isTBD(A)&&isTBD(B))){
+        html+=`<div class="pend" style="${posPct(pa)}" data-tip="${tipTxt}"></div>`;
+        html+=`<div class="pend" style="${posPct(pb)}" data-tip="${tipTxt}"></div>`;
+        html+=`<div class="node mnode" style="${posPct(p)}" data-tip="${tipTxt}"></div>`;
+        return;
+      }
+      html+=teamBubble(A,m,pa,rid);
+      html+=teamBubble(B,m,pb,rid);
+      const hasScore=m.teams.some(t=>t&&t.score!=null&&t.score!==""&&!isTBD(t));
+      if(hasScore){
+        const cls="node schip"+(m.state==="in"?" live":m.completed?" done":"");
+        html+=`<div class="${cls}" style="${posPct(p)}" data-tip="${tipTxt}">${esc(A.score??"")}<i>–</i>${esc(B.score??"")}</div>`;
+      }else{
+        let cls="node mnode"; if(m.completed) cls+=" done"; else if(m.state==="in") cls+=" live";
+        html+=`<div class="${cls}" style="${posPct(p)}" data-tip="${tipTxt}"></div>`;
+      }
     });
   });
 
-  const a32=GEO.angles.r32;
-  for(let i=0;i<16;i++){
-    const m=(DATA.rounds.r32||[])[i], ang=a32[i], base=GEO.P(GEO.radius.bubble,ang);
-    const tx=-Math.sin(ang), ty=Math.cos(ang);
-    const teamA=m&&m.teams?m.teams[0]:null, teamB=m&&m.teams?m.teams[1]:null;
-    if(isTBD(teamA)&&isTBD(teamB)){
-      html+=`<div class="pend" style="${posPct(base)}" data-tip="Round of 32\nAwaiting teams"></div>`;
-      continue;
-    }
-    [[teamA,-18],[teamB,18]].forEach(([t,off])=>{
-      const p={x:base.x+tx*off,y:base.y+ty*off};
-      html+=teamBubble(t,m,p);
-    });
-  }
-
+  // the final flanks the trophy vertically once its teams are known
+  const f=(DATA.rounds.final||[])[0];
   const champ=getChampion();
+  if(f&&f.teams&&f.teams.length===2&&!(isTBD(f.teams[0])&&isTBD(f.teams[1]))&&!champ){
+    html+=teamBubble(f.teams[0],f,{x:cx,y:cy-64},"final");
+    html+=teamBubble(f.teams[1],f,{x:cx,y:cy+64},"final");
+  }
   html+=champ
     ? `<div class="core crowned" data-tip="Champion\n${esc(champ.name)}">${flagInner(champ.abbr)||'<span class="trophy">🏆</span>'}</div>`
-    : `<div class="core" data-tip="The trophy goes to the centre"><span class="trophy">🏆</span></div>`;
+    : `<div class="core" data-tip="Final · Sun Jul 19\nWinner takes the trophy"><span class="trophy">🏆</span><span class="core-sub">FINAL</span></div>`;
 
   boardEl.innerHTML=html;
 }
-function teamBubble(t,m,p){
+function teamBubble(t,m,p,rid){
   const win=m&&m.completed&&m.winnerId&&t&&m.winnerId===t.id;
   const lose=m&&m.completed&&m.winnerId&&t&&m.winnerId!==t.id&&!isTBD(t);
   const cls=["node","tnode",win?"win":"",lose?"lose":""].filter(Boolean).join(" ");
   const inner=isTBD(t)?`<span class="abbr" style="color:var(--muted-2)">·</span>`
     :(flagInner(t.abbr)||`<span class="abbr">${esc(t.abbr)}</span>`);
-  return `<div class="${cls}" style="${posPct(p)};width:36px;height:36px;border-radius:50%"
-    data-tip="${esc(tipTeam(t,m))}">${inner}</div>`;
+  return `<div class="${cls}" style="${posPct(p)};width:34px;height:34px;border-radius:50%"
+    data-tip="${esc(tipMatch(m,rid||"r32"))}">${inner}</div>`;
 }
 function getChampion(){
   const f=(DATA.rounds.final||[])[0];
@@ -638,7 +658,6 @@ function tipMatch(m,rid){
   const odds=p?`\n${m.teams[0].abbr} ${pctW(p.home)} · Draw ${pctW(p.draw)} · ${m.teams[1].abbr} ${pctW(p.away)}`:"";
   return `${r}\n${line}\n${m.completed?"Full time":fmtDate(m.date)}${odds}`;
 }
-function tipTeam(t,m){ return isTBD(t)?"To be decided":tipMatch(m,m?.roundId||"r32"); }
 
 /* ---------- winner odds panel ---------- */
 function renderOdds(){
